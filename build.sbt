@@ -45,9 +45,9 @@ lazy val slickCodeGenTask = (sourceManaged, dependencyClasspath in Compile, runn
   val targetDir = "src/main/scala"
   val pkg = "org.canve.githubCruncher.mysql"
   
-  val outputSourceFile = s"$targetDir/org/canve/githubCruncher/mysql/Tables.scala"
   toError(r.run("slick.codegen.SourceCodeGenerator", cp.files, Array(slickDriver, jdbcDriver, url, targetDir, pkg), s.log))
 
-  println(scala.Console.GREEN + s"[info] slick auto-generation now generated at $outputSourceFile" + scala.Console.RESET)
+  val outputSourceFile = s"$targetDir/org/canve/githubCruncher/mysql/Tables.scala"
+  println(scala.Console.GREEN + s"[info] slick code now auto-generated at $outputSourceFile" + scala.Console.RESET)
   Seq(file(outputSourceFile))
 }
