@@ -18,6 +18,7 @@ lazy val root = (project in file("."))
 
 lazy val githubCruncher = (project in file("github-cruncher"))
   .dependsOn(pipeline)
+  .disablePlugins(ScalariformPlugin, StylePlugin)
   .settings(commonSettings).settings(
     scalaVersion := "2.11.5",
     publishArtifact := false,
