@@ -32,3 +32,6 @@ credentials.sbt
 out/
 out.txt
 search.out
+
+# nested pipeline project
+pipeline/

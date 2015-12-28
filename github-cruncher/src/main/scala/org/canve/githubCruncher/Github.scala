@@ -4,6 +4,7 @@ import scalaj.http._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import scala.util.{Try, Success, Failure}
+import org.allenai.pipeline._
 
 case class Project(
   searchScore: Float,
@@ -14,15 +15,18 @@ case class Project(
   sshCloneUrl: String,
   httpCloneUrl: String,
   url: String,
-  languagesApiUrl: String
-)
+  languagesApiUrl: String) {
+  
+  //def cloneRepo {}
+  
+}
   
 object app extends App with GithubCrawler {
   
   val db = DB
-
-  println(crawl.get.mkString("\n"))
   
+  println(crawl.get.mkString("\n"))
+    
 }
 
 trait GithubCrawler {  

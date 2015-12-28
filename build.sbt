@@ -7,9 +7,19 @@ lazy val commonSettings = Seq(
   organization := org
 )
 
-lazy val githubCruncher = (project in file("."))
+/*
+ * a conslidating root project definition - for overcoming sbt-eclipse/scala-ide limitations
+ */
+lazy val root = (project in file("."))
+  .aggregate(pipeline, githubCruncher)
   .settings(commonSettings).settings(
-    scalaVersion := "2.11.7",
+    publishArtifact := false // no artifact to publish for the void root project itself
+)
+
+lazy val githubCruncher = (project in file("github-cruncher"))
+  .dependsOn(pipeline)
+  .settings(commonSettings).settings(
+    scalaVersion := "2.11.5",
     publishArtifact := false,
     libraryDependencies ++= Seq(
 
@@ -41,13 +51,15 @@ lazy val slickCodeGenTask = (sourceManaged, dependencyClasspath in Compile, runn
   val jdbcDriver = "com.mysql.jdbc.Driver"
   val slickDriver = "slick.driver.MySQLDriver"
   val url = s"jdbc:mysql://localhost:3306/$dbName?user=$user"
-  
+
   val targetDir = "src/main/scala"
   val pkg = "org.canve.githubCruncher.mysql"
-  
+
   toError(r.run("slick.codegen.SourceCodeGenerator", cp.files, Array(slickDriver, jdbcDriver, url, targetDir, pkg), s.log))
 
   val outputSourceFile = s"$targetDir/org/canve/githubCruncher/mysql/Tables.scala"
   println(scala.Console.GREEN + s"[info] slick code now auto-generated at $outputSourceFile" + scala.Console.RESET)
   Seq(file(outputSourceFile))
 }
+
+lazy val pipeline = (project in file("pipeline"))
