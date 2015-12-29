@@ -15,11 +15,20 @@ object Pipeline extends ImplicitPersistenceSerializations {
     extends Producer[List[play.api.libs.json.JsValue]] 
     with Ai2StepInfo with GithubCrawler {
     
-      override def create =  projectsList
+      override def create = projectsList
   }
  
+  case class Clone() 
+    extends Producer[String] 
+    with Ai2StepInfo with GithubCrawler {
+    
+      override def create =  "aaa"
+  }
+  
   PipelineImpl.Persist.Collection.asJson(GenerateProjectsList())
   
-  def run = PipelineImpl.run("github processing pipeline")
-  
+  def run() = {
+    PipelineImpl.run("github processing pipeline")
+    //PipelineImpl.openDiagram()
+  }
 }
