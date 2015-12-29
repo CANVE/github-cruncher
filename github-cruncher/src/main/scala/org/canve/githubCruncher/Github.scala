@@ -5,6 +5,8 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import scala.util.{Try, Success, Failure}
 import org.allenai.pipeline._
+import org.allenai.pipeline.IoHelpers._
+import java.io.File
 
 case class Project(
   searchScore: Float,
@@ -25,8 +27,37 @@ object app extends App with GithubCrawler {
   
   val db = DB
   
-  println(crawl.get.mkString("\n"))
+  //println(crawl.get.toString)
+  Trial
+}
+
+object Trial {
+  
+  object MyPipeline extends Pipeline {
+    override def rootOutputUrl = {
+        new File("out").toURI
+    }
+  }
+
+  case class GenerateProjectsList() extends Producer[List[Project]] with Ai2StepInfo with GithubCrawler {
+    override def create: List[Project] = {
+      println("generating project list")
+      crawl.get    
+    }
+  }
+ 
+  implicit object ProjectSerialize 
+    extends org.allenai.pipeline.StringSerializable[Project] with spray.json.JsonFormat[Project] {
+
+    def read(json: spray.json.JsValue): Project = ???
+    def write(obj: Project): spray.json.JsValue = ???
     
+    def fromString(s: String): org.canve.githubCruncher.Project = ???
+    def toString(p: Project): String = p.toString()
+  }
+
+  MyPipeline.Persist.Collection.asText(GenerateProjectsList())
+  MyPipeline.run("github processing pipeline")
 }
 
 trait GithubCrawler {  
@@ -46,7 +77,7 @@ trait GithubCrawler {
             //println(response.body)
             println(response.isSuccess)
             val asJson: JsValue = Json.parse(response.body)
-            println(Json.prettyPrint(asJson))
+            //println(Json.prettyPrint(asJson))
             val items: List[JsValue] = 
               (asJson \ "items").as[JsArray]
               .as[List[JsValue]]
