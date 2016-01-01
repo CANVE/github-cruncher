@@ -2,6 +2,10 @@ package org.canve.githubCruncher
 import org.allenai.pipeline._
 import org.allenai.pipeline.IoHelpers._
 import java.io.File
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Await
+import scala.concurrent.duration._
+//import java.util.concurrent.TimeUnit._
 
 object Pipeline extends ImplicitPersistenceSerializations {
   
@@ -15,14 +19,14 @@ object Pipeline extends ImplicitPersistenceSerializations {
     extends Producer[List[play.api.libs.json.JsValue]] 
     with Ai2StepInfo with GithubCrawler {
     
-      override def create = projectsList
+      override def create = Await.result(getProjectsList,Duration(60, MINUTES))
   }
  
   case class Clone() 
     extends Producer[String] 
     with Ai2StepInfo with GithubCrawler {
     
-      override def create =  "aaa"
+      override def create = "aaa"
   }
   
   PipelineImpl.Persist.Collection.asJson(GenerateProjectsList())

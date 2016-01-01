@@ -24,6 +24,8 @@ lazy val githubCruncher = (project in file("github-cruncher"))
     publishArtifact := false,
     libraryDependencies ++= Seq(
 
+      "com.github.nscala-time" %% "nscala-time" % "2.6.0",
+
       /* slick */
       "com.typesafe.slick" %% "slick" % "3.1.1",
       "org.slf4j" % "slf4j-nop" % "1.6.4",
@@ -35,7 +37,9 @@ lazy val githubCruncher = (project in file("github-cruncher"))
       "com.typesafe.play" %% "play-json" % "2.4.6",
 
       /* http client */
-      "org.scalaj" %% "scalaj-http" % "2.2.0"
+      "org.scalaj" %% "scalaj-http" % "2.2.0",
+
+      "org.apache.storm" % "storm-core" % "0.10.0" % "provided"
     ),
     slickAutoGenerate <<= slickCodeGenTask // register sbt command
     // sourceGenerators in Compile <+= slickCodeGenTask // register automatic code generation on every compile

@@ -1,35 +1,53 @@
 package org.canve.githubCruncher
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scalaj.http._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import scala.util.{Try, Success, Failure}
+import scala.annotation.tailrec
+import RateLimitedApiCaller._
 
 trait GithubCrawler {  
 
-  def projectsList: List[JsValue] = {
+  /*
+   * get a relevant scala projects list from github api
+   */
+  def getProjectsList: Future[List[JsValue]] = {
     
-    Try(Http("https://api.github.com/search/repositories")
+    lazy val initialApiCall: HttpRequest = 
+      Http("https://api.github.com/search/repositories")
       .param("q", "language:scala")
       .param("sort", "forks")
-      .asString) match {
 
-      case Failure(e) => 
-      throw new Exception(s"""github api call failed - have we been rate limited? failure details: \n$e""")
+    var result: List[JsValue] = List() 
       
-      case Success(response) => 
+    def impl(apiCall:HttpRequest = initialApiCall): Future[List[JsValue]] = {
+      
+      nonBlockingHttp(apiCall) flatMap { response =>
 
-        if (!response.isSuccess) 
-          throw new Exception(s"""github api call failed - have we been rate limited? failure details: \n$response""")
+        //case Failure(t) => throw new Exception(s"""github api call failed - have we been rate limited? original exception follows:\n$t""") 
+        
+          if (!response.isSuccess) 
+            throw new Exception(s"github api bad response: \n$response")
+  
+          val asJson: JsValue = Json.parse(response.body) //println(Json.prettyPrint(asJson))
+          val headers = response.headers
+          val linkHeaders = parseGithubLinkHeader(headers("Link"))
+          println(linkHeaders)
 
-        val asJson: JsValue = Json.parse(response.body)
-        val headers: Map[String, IndexedSeq[String]] = response.headers
-        val linkHeaders = parseGithubLinkHeader(headers("Link"))
-
-        //println(Json.prettyPrint(asJson))
-        (asJson \ "items")
-          .as[JsArray]
-          .as[List[JsValue]]
-    }
+          val projects = (asJson \ "items")
+            .as[JsArray]
+            .as[List[JsValue]]
+          
+          result ++ projects 
+          
+          if (linkHeaders("next") != linkHeaders("last")) Future { result } 
+          else impl(Http(linkHeaders("next"))) 
+        }
+      }
+       
+    impl() 
   }
   
   /*
