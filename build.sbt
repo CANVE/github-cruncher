@@ -10,10 +10,10 @@ lazy val commonSettings = Seq(
 /*
  * a conslidating root project definition - for overcoming sbt-eclipse/scala-ide limitations
  */
-lazy val root = (project in file("."))
+lazy val GithubCruncherRoot = (project in file("."))
   .aggregate(pipeline, githubCruncher)
   .settings(commonSettings).settings(
-    publishArtifact := false // no artifact to publish for the void root project itself
+    //publishArtifact := false // no artifact to publish for the void root project itself
 )
 
 lazy val githubCruncher = (project in file("github-cruncher"))
@@ -21,7 +21,8 @@ lazy val githubCruncher = (project in file("github-cruncher"))
   .disablePlugins(ScalariformPlugin, StylePlugin)
   .settings(commonSettings).settings(
     scalaVersion := "2.11.5",
-    publishArtifact := false,
+    //publishArtifact := false,
+
     libraryDependencies ++= Seq(
 
       "com.github.nscala-time" %% "nscala-time" % "2.6.0",
@@ -37,11 +38,31 @@ lazy val githubCruncher = (project in file("github-cruncher"))
       "com.typesafe.play" %% "play-json" % "2.4.6",
 
       /* http client */
-      "org.scalaj" %% "scalaj-http" % "2.2.0",
-
-      "org.apache.storm" % "storm-core" % "0.10.0" % "provided"
+      "org.scalaj" %% "scalaj-http" % "2.2.0"
     ),
-    slickAutoGenerate <<= slickCodeGenTask // register sbt command
+
+    /* storm */
+    resolvers ++= Seq("clojars" at "http://clojars.org/repo/",
+                     "clojure-releases" at "http://build.clojure.org/releases"),
+    libraryDependencies += "org.apache.storm" % "storm-core" % "0.10.0" % "provided",
+
+    /*
+     * for the OpenShift wrapper (and takes care of including all non scala core library dependencies in the build artifact)
+    jarName in assembly := "fat.jar",
+    assemblyOption in assembly ~= { _.copy(includeScala = false) },
+    packagedArtifact in Compile in packageBin := {
+      val temp = (packagedArtifact in Compile in packageBin).value
+      val (art, slimJar) = temp
+      val fatJar = new File(crossTarget.value + "/" + (jarName in assembly).value)
+      val _ = assembly.value
+      IO.copy(List(fatJar -> slimJar), overwrite = true)
+      println("Using sbt-assembly to package library dependencies into a fat jar for publication")
+      (art, slimJar)
+    },
+    */
+
+    /* register slick sbt command */
+    slickAutoGenerate <<= slickCodeGenTask
     // sourceGenerators in Compile <+= slickCodeGenTask // register automatic code generation on every compile
 )
 

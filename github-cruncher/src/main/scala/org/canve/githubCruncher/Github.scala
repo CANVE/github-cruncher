@@ -7,7 +7,7 @@ import play.api.libs.functional.syntax._
 import scala.util.{Try, Success, Failure}
 import scala.annotation.tailrec
 import RateLimitedApiCaller._
-
+          
 trait GithubCrawler {  
 
   /*
