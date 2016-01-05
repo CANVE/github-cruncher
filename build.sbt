@@ -13,6 +13,7 @@ lazy val commonSettings = Seq(
 lazy val GithubCruncherRoot = (project in file("."))
   .aggregate(pipeline, githubCruncher)
   .settings(commonSettings).settings(
+    run in Compile <<= (run in Compile in githubCruncher)
     //publishArtifact := false // no artifact to publish for the void root project itself
 )
 
