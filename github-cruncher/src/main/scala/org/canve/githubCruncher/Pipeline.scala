@@ -19,7 +19,7 @@ object Pipeline extends ImplicitPersistenceSerializations {
     extends Producer[List[play.api.libs.json.JsValue]] 
     with Ai2StepInfo with GithubCrawler {
     
-      override def create = Await.result(getProjectsList,Duration(60, MINUTES))
+      override def create = Await.result(getProjectsList, Duration(1, DAYS))
   }
  
   case class Clone() 

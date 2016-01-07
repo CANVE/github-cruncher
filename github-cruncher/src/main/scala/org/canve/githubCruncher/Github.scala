@@ -6,8 +6,8 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import scala.util.{Try, Success, Failure}
 import scala.annotation.tailrec
-import RateLimitedApiCaller._
-          
+import LimitingApiCaller._
+
 trait GithubCrawler {  
 
   /*
@@ -16,7 +16,7 @@ trait GithubCrawler {
   def getProjectsList: Future[List[JsValue]] = {
     
     lazy val initialApiCall: HttpRequest = 
-      Http("https://api.github.com/search/repositories")
+      WithUserAgent("https://api.github.com/search/repositories")
       .param("q", "language:scala")
       .param("sort", "forks")
 
@@ -24,28 +24,49 @@ trait GithubCrawler {
       
     def impl(apiCall:HttpRequest = initialApiCall): Future[List[JsValue]] = {
       
-      nonBlockingHttp(apiCall) flatMap { response =>
+      println(s"in impl for api call $apiCall")
+      
+      /* attempt an api call */
+      nonBlockingHttp(apiCall).flatMap { response =>
 
-        //case Failure(t) => throw new Exception(s"""github api call failed - have we been rate limited? original exception follows:\n$t""") 
-        
-          if (!response.isSuccess) 
-            throw new Exception(s"github api bad response: \n$response")
-  
-          val asJson: JsValue = Json.parse(response.body) //println(Json.prettyPrint(asJson))
-          val headers = response.headers
-          val linkHeaders = parseGithubLinkHeader(headers("Link"))
-          println(linkHeaders)
-
-          val projects = (asJson \ "items")
-            .as[JsArray]
-            .as[List[JsValue]]
-          
-          result ++ projects 
-          
-          if (linkHeaders("next") != linkHeaders("last")) Future { result } 
-          else impl(Http(linkHeaders("next"))) 
+        response.isSuccess match {
+          case false => throw new Exception(s"github api bad response: \n$response")
+          case true  => println("api call succeeded")
         }
+
+        val asJson: JsValue = Json.parse(response.body) 
+        
+        /*
+        println()
+        println(Json.prettyPrint(asJson))
+        println()
+        */
+        
+        val headers = response.headers
+        val linkHeaders = parseGithubLinkHeader(headers("Link"))
+        //println(linkHeaders)
+
+        val projects = (asJson \ "items")
+          .as[JsArray]
+          .as[List[JsValue]]
+        
+        result ++= projects 
+        
+        println("projects: " + result.length)
+        
+        if (linkHeaders.contains("next")) impl(Http(linkHeaders("next")))  
+        else Future.successful(result)
       }
+      
+      /* if the api call was refused by the rate limit protection of ours, retry it later,
+       * at or after the time recommended by the rate limit mechanism 
+       */ 
+      .recoverWith {
+        case RateLimitAvoidance(retryAdvisedTime) =>
+          println(s"API call avoided by ${LimitingApiCaller.getClass.getSimpleName} to guarantee rate limit conformance. Will retry this request on $retryAdvisedTime")
+          Timer.completeWhen(retryAdvisedTime.toDate) flatMap { _ => impl(apiCall) }
+      }
+    }
        
     impl() 
   }
@@ -56,12 +77,18 @@ trait GithubCrawler {
    */
   private def parseGithubLinkHeader(linkHeader: IndexedSeq[String]): Map[String, String] = {
     assert(linkHeader.size == 1)
+    println("link header")
+    println(linkHeader.head)
+    println("link header")
     linkHeader.head.split(',').map { linkEntry =>
-      val entryPart = linkEntry.split(';')
-      assert(entryPart.size == 2)
-      val rel = entryPart(1).replace(" rel=\"", "").replace("\"", "")
-      val url = entryPart(0).replace("<", "").replace(">", "")
+      val linkEntryHalf = linkEntry.split(';')
+      assert(linkEntryHalf.size == 2)
+      val rel = linkEntryHalf(1).replace(" rel=\"", "").replace("\"", "")
+      val url = linkEntryHalf(0).replace("<", "").replace(">", "")
       (rel, url)
     }.toMap
   }
 }
+
+/* to satisfy https://developer.github.com/v3/#user-agent-required */
+object WithUserAgent extends BaseHttp (userAgent = "matanster") 
