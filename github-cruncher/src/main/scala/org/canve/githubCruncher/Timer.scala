@@ -5,8 +5,8 @@ import java.util.TimerTask
 import scala.util.Try
 
 /*
- * provides a future that completes after a given time 
- * the gory details: uses a java timer to complete a future returned by itself
+ * A timer provided as an empty future that completes after a given time. 
+ * The gory details: uses a java timer to complete a future returned by itself
  * code credit: http://stackoverflow.com/a/29691518/1509695 
  */
 object Timer {

@@ -8,7 +8,6 @@ import scala.concurrent.Await
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
-
 /*
  * A rate limiting api caller
  */
@@ -25,21 +24,19 @@ object LimitingApiCaller {
       new SearchRateState(response) 
   }
 
-  /* Class for github rate limit */
+  /* Class representing the established github rate limit */
   private case class Rate(windowLimit: Int, windowRemaining: Int, windowEnd: DateTime) {
     
     /*
-     * Use this function to always reserve some api quota, so that the api can always be 
+     * We use this function to always reserve some api quota, so that the api can always be 
      * manually examined outside the run of the application
      */
     def windowQuotaReserveLeft = windowRemaining > (0.1 * windowLimit)   
-    
-    /* debug printing */
-    println(this) 
   }
   
   /* 
-   * Class that gets the github rate limit applicable to search queries, from a github api response 
+   * Class that gets the github rate limit applicable to search queries, both from a github api response,
+   * and from a rate limit api query (the latter does does not count towards quota)
    */
   private case class SearchRateState(response: HttpResponse[String]) {
     
@@ -47,7 +44,7 @@ object LimitingApiCaller {
     
     val rate = asJson.keys.contains("resources") match {
 
-      /* handles response coming from a query call */
+      /* handles response coming from a query api call */
       case false => 
         Rate(
           windowLimit     = response.headers("X-RateLimit-Limit").head.toInt,
@@ -83,7 +80,7 @@ object LimitingApiCaller {
         case false => 
           applicableRateState flatMap { currentRateState =>
             Future.failed[HttpResponse[String]](
-              RateLimitAvoidance(currentRateState.rate.windowEnd + slack))
+              RateLimitHint(currentRateState.rate.windowEnd + slack))
         }
       }}
     }
@@ -99,5 +96,5 @@ object LimitingApiCaller {
   }
 }
 
-/* Exception type conveying a hint for when to retry the api call */
-case class RateLimitAvoidance(retryAdvisedTime: DateTime) extends Throwable
+/* Exception type conveying a hint for when to retry the api call ― back to the caller */
+case class RateLimitHint(safeRetryTime: DateTime) extends Throwable

@@ -8,6 +8,20 @@ import scala.util.{Try, Success, Failure}
 import scala.annotation.tailrec
 import LimitingApiCaller._
 
+/*
+ * A crawler that respects github's search query rate limit. 
+ * To learn how github rate limiting works you may review:
+ * 
+ * https://developer.github.com/v3/search/
+ * https://developer.github.com/v3/#increasing-the-unauthenticated-rate-limit-for-oauth-applications
+ * https://developer.github.com/guides/basics-of-authentication/#registering-your-app
+ * https://developer.github.com/v3/#user-agent-required
+ * 
+ * However some behavior is not documented, e.g. the way the link headers provide information about
+ * your rate limit. Specifically at the time of writing, the link headers will report the rate limit
+ * applicable to the type of query which they respond to.
+ */
+
 trait GithubCrawler {  
 
   /*
@@ -62,7 +76,7 @@ trait GithubCrawler {
        * at or after the time recommended by the rate limit mechanism 
        */ 
       .recoverWith {
-        case RateLimitAvoidance(retryAdvisedTime) =>
+        case RateLimitHint(retryAdvisedTime) =>
           println(s"API call avoided by ${LimitingApiCaller.getClass.getSimpleName} to guarantee rate limit conformance. Will retry this request on $retryAdvisedTime")
           Timer.completeWhen(retryAdvisedTime.toDate) flatMap { _ => impl(apiCall) }
       }

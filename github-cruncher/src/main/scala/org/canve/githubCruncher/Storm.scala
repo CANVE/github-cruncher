@@ -8,6 +8,10 @@ import backtype.storm.task.TopologyContext
 import scala.language.implicitConversions
 import java.util.{Map => JMap}
 
+/*
+ * Not yet in use
+ */
+
 class Toplogy {
   val StormTopology: TopologyBuilder = new TopologyBuilder()
 }
